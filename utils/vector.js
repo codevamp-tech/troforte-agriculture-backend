@@ -13,7 +13,6 @@ export async function queryVectorStore(query) {
     includeMetadata: true,
     includeData: true,
   });
-  console.log("results", results);
   const context = results.map((doc) => doc.data).join("\n");
   return context;
 }
