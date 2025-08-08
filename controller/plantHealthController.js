@@ -1,7 +1,8 @@
 import axios from "axios";
 import dotenv from "dotenv";
 import { redis } from "../utils/redis.js";
-import { cleanupFiles, convertImagesToBase64 } from "../utils/helper.js";
+import { cleanupFiles, convertImageToBase64 } from "../utils/helper.js";
+import { uploadFileToS3 } from "../utils/s3Upload.js";
 
 dotenv.config();
 
@@ -24,9 +25,7 @@ export async function getAnalysisHistory(req, res) {
       return res.status(400).json({ error: "Invalid deviceId format" });
     }
 
-    // Get paginated chat IDs (most recent first)
     const analysisId = await redis.lrange(`device:${deviceId}:analysis`, 0, -1);
-    const totalAnalysis = await redis.llen(`device:${deviceId}:analysis`);
 
     if (analysisId.length === 0) {
       return res.json({
@@ -42,6 +41,7 @@ export async function getAnalysisHistory(req, res) {
           if (!analysis || analysis.deviceId !== deviceId) return null;
           
           return {
+            imageUrl: analysis.imageUrl,
             analysisId: analysis.analysisId,
             createdAt: analysis.createdAt,
             updatedAt: analysis.updatedAt,
@@ -111,24 +111,25 @@ export const analyzePlantHealth = async (req, res) => {
     }
 
     // Validate images
-    if (!req.files || req.files.length === 0) {
+    if (!req.file) {
       return res.status(400).json({
         success: false,
         error: "No images provided",
         message: "Please upload at least one image",
       });
     }
+    const imageUrl = await uploadFileToS3(req.file); 
 
     console.log(
-      `Processing ${req.files.length} images for plant health analysis...`
+      `Processing image for plant health analysis...`
     );
 
     // Convert images to base64
     let base64Images;
     try {
-      base64Images = convertImagesToBase64(req.files);
+      base64Images = convertImageToBase64(req.file);
     } catch (error) {
-      cleanupFiles(req.files);
+      // cleanupFiles(req.files);
       return res.status(400).json({
         success: false,
         error: "Image processing failed",
@@ -173,12 +174,13 @@ export const analyzePlantHealth = async (req, res) => {
     );
 
     // Clean up uploaded files
-    cleanupFiles(req.files);
+    // cleanupFiles(req.files);
     // Process and send response
     const result = response.data;
 
     if (!analysis) {
       analysis = {
+        imageUrl,
         analysisId,
         deviceId,
         createdAt: new Date().toISOString(),
@@ -210,7 +212,7 @@ export const analyzePlantHealth = async (req, res) => {
   } catch (error) {
     console.error("Plant health analysis error:", error.message);
 
-    cleanupFiles(req.files);
+    // cleanupFiles(req.files);
 
     if (error.response) {
       const statusCode = error.response.status;
@@ -280,7 +282,7 @@ export const identifyPlant = async (req, res) => {
     // Convert images to base64
     let base64Images;
     try {
-      base64Images = convertImagesToBase64(req.files);
+      base64Images = convertImageToBase64(req.files);
     } catch (error) {
       cleanupFiles(req.files);
       return res.status(400).json({

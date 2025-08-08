@@ -11,23 +11,8 @@ import {
 
 const router = express.Router();
 
-// Configure multer for file uploads
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const uploadDir = '../uploads/plants';
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-    cb(null, uploadDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, `plant_${uniqueSuffix}_${file.originalname}`);
-  }
-});
-
 const upload = multer({ 
-  storage: storage,
+  storage: multer.memoryStorage(),
   limits: { 
     fileSize: 10 * 1024 * 1024, // 10MB limit
     files: 5 // Maximum 5 files
@@ -49,7 +34,7 @@ router.get('/analysis-history', getAnalysisHistory)
 router.get('/analysisById', getAnalysisById)
 
 // Plant health assessment endpoint
-router.post('/plant-health/analyze', upload.array('images', 5), analyzePlantHealth);
+router.post('/plant-health/analyze', upload.single('images'), analyzePlantHealth);
 
 // Plant identification endpoint
 router.post('/plant-health/identify', upload.array('images', 5), identifyPlant);

@@ -1,18 +1,17 @@
 import fs from "fs";
 
 // Helper function to convert images to base64
-export const convertImagesToBase64 = (files) => {
-  return files.map((file) => {
-    try {
-      const imageData = fs.readFileSync(file.path);
-      const base64 = Buffer.from(imageData).toString("base64");
-      return `data:image/jpeg;base64,${base64}`;
-    } catch (error) {
-      console.error(`Error reading file ${file.path}:`, error);
-      throw new Error(`Failed to process image: ${file.originalname}`);
-    }
-  });
+export const convertImageToBase64 = (file) => {
+  try {
+    const base64 = file.buffer.toString("base64");
+    const mimeType = file.mimetype || "image/jpeg"; // fallback just in case
+    return [`data:${mimeType};base64,${base64}`]; // return as array for compatibility
+  } catch (error) {
+    console.error("Error converting image to base64:", error);
+    throw new Error(`Failed to convert image to base64`);
+  }
 };
+
 
 // Helper function to clean up uploaded files
 export const cleanupFiles = (files) => {

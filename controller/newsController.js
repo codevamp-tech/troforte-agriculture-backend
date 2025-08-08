@@ -17,6 +17,7 @@ export const getAgricultureNews = async (req, res) => {
         'Accept': 'application/json'
       }
     });
+
     // Transform the data to only send what the client needs
     const newsData = response.data.results.map(article => ({
       id: article.id,
