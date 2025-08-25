@@ -164,21 +164,27 @@ export const saveFarmerInfo = async (req, res) => {
   }
 };
 
-export const getFarmer = async (req , res) => {
+export const getFarmer = (req, res) => {
   try {
     const { farmerId } = req.params;
-    const record = await base('Farmer Info').find(farmerId);
 
-    if (!record) {
-      return res.status(404).json({ error: 'Farmer not found' });
-    }
+    base("Farmer Info").find(farmerId, (err, record) => {
+      if (err) {
+        console.error("Error fetching farmer:", err);
+        return res.status(500).json({ error: "Failed to fetch farmer data" });
+      }
 
-    res.json(record.fields);
+      if (!record) {
+        return res.status(404).json({ error: "Farmer not found" });
+      }
+      res.json(record.fields);
+    });
   } catch (error) {
-    console.error('Error fetching farmer:', error);
-    res.status(500).json({ error: 'Failed to fetch farmer data' });
+    console.error("Unexpected error:", error);
+    res.status(500).json({ error: "Failed to fetch farmer data" });
   }
 };
+
 
 export const updateFarmer = async(req, res) => {
       try {
